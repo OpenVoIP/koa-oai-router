@@ -21,6 +21,12 @@ function parse(apiDir) {
  * @returns {object}
  */
 async function load(api) {
+  if (Array.isArray(api)) {
+    return Promise.all(api.map((item) => {
+      return load(item);
+    }));
+  }
+
   const stat = statSync(api);
   if (stat.isFile()) {
     return parse(api);

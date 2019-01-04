@@ -21,7 +21,6 @@ class OAIRouter extends Router {
       apiCooker = (api) => { return api; },
       options = {},
     } = opts;
-    assert(util.isString(apiDoc), 'apiDoc must be string.');
     assert(util.isFunction(apiCooker), 'apiCooker must be function.');
 
     this.apiDoc = apiDoc;
@@ -41,7 +40,15 @@ class OAIRouter extends Router {
   routes() {
     spec(this.apiDoc)
       .then(async (api) => {
-        this.api = await this.apiCooker(api);
+        if (Array.isArray(api)) {
+          this.api = await this.apiCooker(api.reduce((accumulator, currentValue) => {
+            Object.assign(accumulator.paths, currentValue.paths);
+            return accumulator;
+          }, api[0]));
+        } else {
+          this.api = await this.apiCooker(api);
+        }
+
 
         await this.registerRoutes();
         await this.registerApiExplorer();

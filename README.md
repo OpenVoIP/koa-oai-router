@@ -376,3 +376,7 @@ Use a browser to open `http://localhost:3000/api-explorer`, and you can enjoy ap
 * More plugins
 * More unit tests
 * Benchmark
+
+## Fork https://github.com/BiteBit/koa-oai-router
+
+1. 对 apiDoc 添加多目录识别
