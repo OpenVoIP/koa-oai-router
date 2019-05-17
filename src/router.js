@@ -20,9 +20,12 @@ class OAIRouter extends Router {
       apiExplorerVisible = true,
       apiCooker = (api) => { return api; },
       options = {},
+      // 添加日志函数
+      logger = console,
     } = opts;
     assert(util.isFunction(apiCooker), 'apiCooker must be function.');
 
+    this.logger = logger;
     this.apiDoc = apiDoc;
     this.apiExplorerVisible = apiExplorerVisible;
     this.apiCooker = apiCooker;
@@ -38,7 +41,7 @@ class OAIRouter extends Router {
    * @returns route dispatcher, koa middleware
    */
   routes() {
-    spec(this.apiDoc)
+    spec(this.apiDoc, this.logger)
       .then(async (api) => {
         if (Array.isArray(api)) {
           this.api = await this.apiCooker(api.reduce((accumulator, currentValue) => {
