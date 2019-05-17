@@ -22,7 +22,7 @@ function parse(apiDir, logger) {
               method = colors.green('get  ');
               break;
             case 'post':
-              method = colors.yellow('post');
+              method = colors.yellow('post ');
               break;
             default:
               method = colors.red(Object.keys(api.paths[path])[0]);

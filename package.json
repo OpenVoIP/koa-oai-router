@@ -1,6 +1,6 @@
 {
   "name": "koa-oai-router-cc",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "main": "lib",
   "scripts": {
     "clean": "rm -rf coverage lib",
