@@ -5,7 +5,10 @@ import Router from './router-super';
 import spec from './spec';
 import swagger from './swagger';
 import * as util from './util';
-import { oai2koaUrlJoin, urlJoin } from './util/route';
+import {
+  oai2koaUrlJoin,
+  urlJoin,
+} from './util/route';
 
 import PluginRegister from './plugin-register';
 
@@ -18,7 +21,9 @@ class OAIRouter extends Router {
     const {
       apiDoc,
       apiExplorerVisible = true,
-      apiCooker = (api) => { return api; },
+      apiCooker = (api) => {
+        return api;
+      },
       options = {},
       // 添加日志函数
       logger = console,
@@ -31,7 +36,7 @@ class OAIRouter extends Router {
     this.apiCooker = apiCooker;
     this.options = options;
 
-    this.api = null;
+    this.api = [];
     this.pluginRegister = new PluginRegister(this.options);
   }
 
@@ -41,15 +46,24 @@ class OAIRouter extends Router {
    * @returns route dispatcher, koa middleware
    */
   routes() {
+    if (!this.apiDoc) {
+      return super.routes();
+    }
     spec(this.apiDoc, this.logger)
       .then(async (api) => {
         if (Array.isArray(api)) {
-          this.api = await this.apiCooker(api.reduce((accumulator, currentValue) => {
-            Object.assign(accumulator.paths, currentValue.paths);
-            return accumulator;
-          }, api[0]));
+          // 多个目录合并一个 api
+          // this.api = await this.apiCooker(api.reduce((accumulator, currentValue) => {
+          //   Object.assign(accumulator.paths, currentValue.paths);
+          //   return accumulator;
+          // }, api[0]));
+
+          // 多个目录保持多个 api
+          this.api = await Promise.all(api.map((item) => {
+            return this.apiCooker(item);
+          }));
         } else {
-          this.api = await this.apiCooker(api);
+          this.api.push(await this.apiCooker(api));
         }
 
 
@@ -84,7 +98,7 @@ class OAIRouter extends Router {
     const paths = util.get(this, 'api.paths', {});
 
     await util.eachPromise(paths, async (path, pathValue) => {
-      const endpoint = oai2koaUrlJoin(this.api.basePath, path);
+      const endpoint = oai2koaUrlJoin(this.api[0].basePath, path);
 
       await util.eachPromise(pathValue, async (operation, operationValue) => {
         await this.registerRoute(endpoint, operation, operationValue);
@@ -138,13 +152,24 @@ class OAIRouter extends Router {
       ctx.response.body = swagger.presetJs;
     });
 
-    this.get('/api.json', (ctx) => {
-      ctx.response.body = this.api;
+    this.api.forEach((item) => {
+      this.get(`/${item.info.title}.json`, (ctx) => {
+        ctx.response.body = item;
+      });
     });
 
+
     this.get('/api-explorer-config.json', (ctx) => {
+      const urls = [];
+      this.api.forEach((item) => {
+        urls.push({
+          name: item.info.title,
+          url: urlJoin(this.options.prefix, `${item.info.title}.json`),
+        });
+      });
+
       ctx.response.body = {
-        urls: [{ name: 'api-doc', url: urlJoin(this.options.prefix, 'api.json') }],
+        urls,
         displayOperationId: true,
         displayRequestDuration: true,
         showExtensions: true,
@@ -153,5 +178,4 @@ class OAIRouter extends Router {
     });
   }
 }
-
 export default OAIRouter;
